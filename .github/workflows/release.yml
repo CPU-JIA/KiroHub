@@ -23,12 +23,8 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     steps:
-      - name: Checkout from private repo
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          repository: hj01857655/kiro-account-manager_dev
-          ref: dev
-          token: ${{ secrets.PRIVATE_REPO_TOKEN }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
