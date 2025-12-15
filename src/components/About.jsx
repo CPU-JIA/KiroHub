@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react'
-import { Github, Heart, Coffee, ExternalLink, Sparkles, Code2, Palette, Cpu, RefreshCw, X, Download } from 'lucide-react'
+import { Github, Heart, ExternalLink, Sparkles, Code2, Palette, Cpu, RefreshCw, Download } from 'lucide-react'
 import { getVersion } from '@tauri-apps/api/app'
 import { check } from '@tauri-apps/plugin-updater'
 import { relaunch } from '@tauri-apps/plugin-process'
 import { useTheme } from '../contexts/ThemeContext'
 import { useI18n } from '../i18n.jsx'
-import alipayQR from '../assets/donate/alipay.jpg'
-import wechatQR from '../assets/donate/wechat.jpg'
 
 function About() {
   const { theme, colors } = useTheme()
@@ -15,7 +13,6 @@ function About() {
   const [version, setVersion] = useState('')
   const [checking, setChecking] = useState(false)
   const [updateStatus, setUpdateStatus] = useState(null)
-  const [previewImg, setPreviewImg] = useState(null)
 
   useEffect(() => {
     getVersion().then(setVersion)
@@ -194,25 +191,6 @@ function About() {
           </div>
         </div>
 
-        {/* 赞赏 */}
-        <div className={`card-glow ${colors.card} rounded-2xl p-6 shadow-lg border ${colors.cardBorder} mb-6 opacity-0 animate-fade-in-up delay-300`}>
-          <div className="flex items-center justify-center gap-2 mb-5">
-            <Coffee size={18} className="text-amber-500" />
-            <span className={`text-base font-medium ${colors.text}`}>{t('about.donate')}</span>
-          </div>
-          <div className="flex justify-center gap-10">
-            <div className="text-center cursor-pointer group" onClick={() => setPreviewImg(alipayQR)}>
-              <img src={alipayQR} alt={t('about.alipay')} className="w-28 h-28 rounded-xl object-cover mb-2 group-hover:scale-105 transition-transform shadow-lg" />
-              <span className={`text-sm ${colors.textMuted}`}>{t('about.alipay')}</span>
-            </div>
-            <div className="text-center cursor-pointer group" onClick={() => setPreviewImg(wechatQR)}>
-              <img src={wechatQR} alt={t('about.wechat')} className="w-28 h-28 rounded-xl object-cover mb-2 group-hover:scale-105 transition-transform shadow-lg" />
-              <span className={`text-sm ${colors.textMuted}`}>{t('about.wechat')}</span>
-            </div>
-          </div>
-          <p className={`text-xs ${colors.textMuted} text-center mt-4`}>{t('about.clickToEnlarge')}</p>
-        </div>
-
         {/* 底部 */}
         <div className={`flex items-center justify-center gap-2 text-sm ${colors.textMuted} opacity-0 animate-fade-in delay-400`}>
           <span>{t('about.madeWith')}</span>
@@ -222,24 +200,6 @@ function About() {
           <span>© 2025</span>
         </div>
       </div>
-
-      {/* 图片预览弹窗 */}
-      {previewImg && (
-        <div 
-          className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 animate-fade-in"
-          onClick={() => setPreviewImg(null)}
-        >
-          <div className="relative">
-            <img src={previewImg} alt="预览" className="max-w-[320px] max-h-[320px] rounded-2xl shadow-2xl" />
-            <button 
-              className="absolute -top-3 -right-3 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
-              onClick={() => setPreviewImg(null)}
-            >
-              <X size={16} className="text-gray-600" />
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
