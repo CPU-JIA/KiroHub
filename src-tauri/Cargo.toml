@@ -1,10 +1,10 @@
 [package]
-name = "kiro-account-manager"
-version = "1.5.1"
-description = "Kiro Account Manager"
-authors = ["you"]
-license = ""
-repository = ""
+name = "kirohub"
+version = "1.0.0"
+description = "KiroHub - Kiro IDE Account Manager"
+authors = ["CPU-JIA"]
+license = "GPL-3.0"
+repository = "https://github.com/CPU-JIA/kiro-account-manager"
 edition = "2021"
 
 [build-dependencies]
@@ -39,6 +39,7 @@ cookie = "0.18"
 rusqlite = { version = "0.31", features = ["bundled"] }
 async-trait = "0.1"
 dirs = "5"
+futures = "0.3"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.52"

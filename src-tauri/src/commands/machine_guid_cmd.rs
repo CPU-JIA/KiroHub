@@ -30,7 +30,7 @@ fn get_machine_guid_backup_path() -> PathBuf {
     let data_dir = dirs::data_dir()
         .unwrap_or_else(|| PathBuf::from("."));
     data_dir
-        .join(".kiro-account-manager")
+        .join(".kirohub")
         .join("machine-guid-backup.json")
 }
 
@@ -40,7 +40,7 @@ fn get_macos_override_path() -> PathBuf {
     let data_dir = dirs::data_dir()
         .unwrap_or_else(|| PathBuf::from("."));
     data_dir
-        .join(".kiro-account-manager")
+        .join(".kirohub")
         .join("machine-id-override")
 }
 

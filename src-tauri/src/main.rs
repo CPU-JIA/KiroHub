@@ -33,6 +33,7 @@ use commands::account_cmd::{
 };
 use commands::app_settings_cmd::*;
 use commands::auth_cmd::*;
+use commands::batch_import_cmd::*;
 use commands::kiro_settings_cmd::*;
 use commands::machine_guid_cmd::*;
 use commands::mcp_cmd::*;
@@ -158,6 +159,8 @@ fn main() {
             detect_system_proxy,
             // SSO Token 导入命令
             import_from_sso_token,
+            // 批量导入命令
+            batch_import_accounts,
             // 更新检查命令
             check_update,
             // Steering 管理命令

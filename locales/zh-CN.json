@@ -10,7 +10,7 @@
   "nav.about": "关于",
   "nav.kiroConnected": "Kiro IDE 已连接",
 
-  "home.title": "Kiro Account Manager",
+  "home.title": "KiroHub",
   "home.subtitle": "管理你的 Kiro IDE 账号，智能切换，配额监控",
   "home.totalAccounts": "总账号数",
   "home.activeAccounts": "正常账号",
@@ -229,7 +229,7 @@
   "webOAuth.footer": "通过 Cognito + KiroWebPortalService 安全登录",
 
   "about.title": "关于",
-  "about.appName": "Kiro Account Manager",
+  "about.appName": "KiroHub",
   "about.appDesc": "智能管理 Kiro 访问令牌，一键切换，配额监控",
   "about.version": "版本",
   "about.checkUpdate": "检查更新",
@@ -251,6 +251,7 @@
   "about.clickToEnlarge": "点击图片可放大查看",
   "about.madeWith": "Made with",
   "about.by": "by",
+  "about.originalProject": "原项目",
 
   "kiroConfig.title": "规则配置",
   "kiroConfig.subtitle": "管理 Kiro IDE 的 MCP 服务器、Powers 和 Steering 规则",

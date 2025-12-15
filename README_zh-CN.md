@@ -1,4 +1,4 @@
-# Kiro Account Manager
+# KiroHub
 
 <p align="center">
   <img src="src-tauri/icons/128x128.png" alt="Logo" width="80">
@@ -6,10 +6,9 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20macOS-blue" alt="Platform">
-  <img src="https://img.shields.io/github/v/release/hj01857655/kiro-account-manager?label=Version&color=green" alt="Version">
-  <img src="https://img.shields.io/github/downloads/hj01857655/kiro-account-manager/total?color=brightgreen" alt="Downloads">
-  <img src="https://img.shields.io/github/license/hj01857655/kiro-account-manager?color=orange" alt="License">
-  <img src="https://img.shields.io/badge/QQ群-1020204332-12B7F5?logo=tencentqq" alt="QQ群">
+  <img src="https://img.shields.io/github/v/release/CPU-JIA/kiro-account-manager?label=Version&color=green" alt="Version">
+  <img src="https://img.shields.io/github/downloads/CPU-JIA/kiro-account-manager/total?color=brightgreen" alt="Downloads">
+  <img src="https://img.shields.io/github/license/CPU-JIA/kiro-account-manager?color=orange" alt="License">
 </p>
 
 <p align="center">
@@ -17,65 +16,76 @@
 </p>
 
 <p align="center">
-  <b>🚀 智能管理 Kiro IDE 账号，一键切换，配额监控</b>
+  <b>智能管理 Kiro IDE 账号，一键切换，配额监控</b>
 </p>
 
 ---
 
-## ✨ 功能特性
+## Fork 说明
 
-### 🔐 账号登录
+本项目 Fork 自 [hj01857655/kiro-account-manager](https://github.com/hj01857655/kiro-account-manager)。
+
+**原作者**: [hj01857655](https://github.com/hj01857655)
+
+**本 Fork 的改进**:
+- 高并发批量导入优化（性能提升 5 倍）
+- 其他改进和 Bug 修复
+
+特别感谢原作者创建了这个优秀的工具！
+
+---
+
+## 功能特性
+
+### 账号登录
 - **Desktop OAuth** - 桌面端授权，支持 Google/GitHub/BuilderId
 - **Web Portal OAuth** - 网页端授权，WebView 窗口内完成
 - 两种方式互补，确保登录成功率
 
-### 📊 账号展示
+### 账号展示
 - 卡片网格布局，一目了然
 - 配额进度条（主配额/试用/奖励）
 - 订阅类型标识（Free/PRO/PRO+）
 - Token 过期倒计时
 - 状态高亮（正常/过期/封禁/当前使用）
 
-### 🔄 一键切号
+### 一键切号
 - 无感切换 Kiro IDE 账号
 - 自动重置机器 ID
 - 切换进度实时显示
 
-### 📦 批量操作
+### 批量操作
 - 批量刷新 / 批量删除
-- JSON 导入导出
-  - Social：refreshToken + provider
-  - IdC：refreshToken + clientId + clientSecret
-- SSO Token 批量导入
+- JSON 导入导出（支持 Social 和 IdC 格式）
+- SSO Token 批量导入（高并发优化）
 - 关键词搜索过滤
 
-### 🔌 Kiro 配置
+### Kiro 配置
 - **MCP 服务器** - 增删改查、启用/禁用
 - **Powers** - 查看、安装、卸载
 - **Steering 规则** - 查看、编辑
 
-### ⚙️ 系统设置
+### 系统设置
 - 四种主题（浅色/深色/紫色/绿色）
 - AI 模型选择与锁定
 - Token 自动刷新（可配置间隔）
 - 切号自动重置机器 ID
-- 机器 ID 绑定账号
 
-### 🌐 浏览器与代理
+### 浏览器与代理
 - 自定义浏览器 / 自动检测
 - 无痕模式启动
 - HTTP 代理配置 / 自动检测
 
-### 🔑 机器码管理
+### 机器码管理
 - 查看 / 备份 / 恢复 / 重置
 - 支持 Windows / macOS
 
-### 🖥️ IDE 集成
+### IDE 集成
 - 检测 Kiro IDE 运行状态
 - 一键启动 / 关闭
 - 自动同步代理和模型设置
 
-## 📸 截图
+## 截图
 
 | 首页 | 账号管理 |
 |:---:|:---:|
@@ -85,11 +95,11 @@
 |:---:|:---:|
 | ![登录页](screenshots/登录页.png) | ![设置](screenshots/设置.png) |
 
-## 📥 下载
+## 下载
 
-[![Release](https://img.shields.io/github/v/release/hj01857655/kiro-account-manager?style=flat-square)](https://github.com/hj01857655/kiro-account-manager/releases/latest)
+[![Release](https://img.shields.io/github/v/release/CPU-JIA/kiro-account-manager?style=flat-square)](https://github.com/CPU-JIA/kiro-account-manager/releases/latest)
 
-👉 **[点击这里下载最新版本](https://github.com/hj01857655/kiro-account-manager/releases/latest)**
+**[点击这里下载最新版本](https://github.com/CPU-JIA/kiro-account-manager/releases/latest)**
 
 | 平台 | 文件类型 | 说明 |
 |------|----------|------|
@@ -97,48 +107,43 @@
 | Windows | `.exe` | NSIS 安装程序 |
 | macOS | `.dmg` | 拖入 Applications |
 
-## 💻 系统要求
+## 系统要求
 
 - **Windows**: Windows 10/11 (64-bit)，需要 WebView2 (Win11 已内置)
 - **macOS**: macOS 10.15+ (Intel/Apple Silicon 通用)
 
-## 🛠️ 技术栈
+## 技术栈
 
-- **前端**: React 18 + Vite 5 + TailwindCSS 3 + Lingui (i18n)
+- **前端**: React 18 + Vite 5 + TailwindCSS 3 + i18next
 - **后端**: Tauri 2.x + Rust + Tokio
 - **图标**: Lucide React
 - **存储**: JSON 文件本地存储
 
-## 📁 数据存储
+## 快速开始
 
-| 数据 | 路径 |
-|------|------|
-| 账号数据 | `%APPDATA%\.kiro-account-manager\accounts.json` |
-| 应用设置 | `%APPDATA%\.kiro-account-manager\settings.json` |
-| MCP 配置 | `~/.kiro/settings/mcp.json` |
-| Powers 注册表 | `~/.kiro/powers/registry.json` |
+1. 从 [Releases](https://github.com/CPU-JIA/kiro-account-manager/releases/latest) 下载对应平台的安装包
+2. 安装并启动应用
+3. 使用 Google、GitHub 或 BuilderId 登录
+4. 轻松管理你的 Kiro 账号！
 
-## 💬 交流反馈
+## 反馈
 
-- 💡 问题反馈、功能建议、使用交流
-- 🐛 [提交 Issue](https://github.com/hj01857655/kiro-account-manager/issues)
-- 💬 QQ 群：[Kiro Account Manager 交流群 (1020204332)](https://qm.qq.com/q/Vh7mUrNpa8)
+- [提交 Issue](https://github.com/CPU-JIA/kiro-account-manager/issues)
 
-<p align="center">
-  <a href="https://qm.qq.com/q/Vh7mUrNpa8">
-    <img src="https://img.shields.io/badge/QQ群-1020204332-12B7F5?style=for-the-badge&logo=tencentqq&logoColor=white" alt="QQ群">
-  </a>
-</p>
+## 致谢
 
-## ⚠️ 免责声明
+- 原项目: [hj01857655/kiro-account-manager](https://github.com/hj01857655/kiro-account-manager)
+- 感谢 [hj01857655](https://github.com/hj01857655) 的原始实现
+
+## 免责声明
 
 本软件仅供学习交流使用，请勿用于商业用途。使用本软件所产生的任何后果由用户自行承担。
 
-## 📄 开源协议
+## 开源协议
 
 [GPL-3.0](LICENSE) - 修改后必须开源。
 
 ---
 
-<p align="center">Made with ❤️ by hj01857655</p>
-<p align="center">如果这个项目对你有帮助，请给个 ⭐！</p>
+<p align="center">Fork 维护者 <a href="https://github.com/CPU-JIA">CPU-JIA</a></p>
+<p align="center">原项目作者 <a href="https://github.com/hj01857655">hj01857655</a></p>

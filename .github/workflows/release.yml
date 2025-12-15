@@ -54,7 +54,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: v__VERSION__
-          releaseName: 'Kiro Account Manager v__VERSION__'
+          releaseName: 'KiroHub v__VERSION__'
           releaseBody: '请查看 CHANGELOG 了解更新内容。'
           releaseDraft: false
           prerelease: false

@@ -170,9 +170,9 @@ function About() {
           <div className={`card-glow ${colors.card} rounded-2xl p-6 shadow-lg border ${colors.cardBorder} opacity-0 animate-fade-in-up delay-200`}>
             <h3 className={`text-sm font-medium ${colors.text} mb-4 text-center`}>{t('about.links')}</h3>
             <div className="space-y-3">
-              <a 
-                href="https://github.com/hj01857655/kiro-account-manager" 
-                target="_blank" 
+              <a
+                href="https://github.com/CPU-JIA/kiro-account-manager"
+                target="_blank"
                 rel="noopener noreferrer"
                 className={`flex items-center gap-3 ${isDark ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-900 hover:bg-gray-800'} rounded-xl p-3 transition-colors group`}
               >
@@ -180,16 +180,14 @@ function About() {
                 <span className="text-white text-sm font-medium">GitHub</span>
                 <ExternalLink size={14} className="text-white/50 ml-auto group-hover:text-white" />
               </a>
-              <a 
-                href="https://qm.qq.com/q/Vh7mUrNpa8" 
-                target="_blank" 
+              <a
+                href="https://github.com/hj01857655/kiro-account-manager"
+                target="_blank"
                 rel="noopener noreferrer"
-                className={`flex items-center gap-3 ${isDark ? 'bg-blue-600 hover:bg-blue-500' : 'bg-blue-500 hover:bg-blue-600'} rounded-xl p-3 transition-colors group`}
+                className={`flex items-center gap-3 ${isDark ? 'bg-purple-600 hover:bg-purple-500' : 'bg-purple-500 hover:bg-purple-600'} rounded-xl p-3 transition-colors group`}
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
-                  <path d="M12.003 2c-2.265 0-6.29 1.364-6.29 7.325v1.195S3.55 14.96 3.55 17.474c0 .665.17 1.025.281 1.025.114 0 .902-.484 1.748-2.072 0 0-.18 2.197 1.904 3.967 0 0-1.77.495-1.77 1.182 0 .686 4.078.43 6.29.43 2.213 0 6.29.256 6.29-.43 0-.687-1.77-1.182-1.77-1.182 2.085-1.77 1.905-3.967 1.905-3.967.845 1.588 1.634 2.072 1.746 2.072.111 0 .283-.36.283-1.025 0-2.514-2.166-6.954-2.166-6.954V9.325C18.29 3.364 14.268 2 12.003 2z"/>
-                </svg>
-                <span className="text-white text-sm font-medium">{t('about.qqGroup')}: 1020204332</span>
+                <Github size={18} className="text-white" />
+                <span className="text-white text-sm font-medium">{t('about.originalProject')}</span>
                 <ExternalLink size={14} className="text-white/50 ml-auto group-hover:text-white" />
               </a>
             </div>
@@ -219,7 +217,7 @@ function About() {
         <div className={`flex items-center justify-center gap-2 text-sm ${colors.textMuted} opacity-0 animate-fade-in delay-400`}>
           <span>{t('about.madeWith')}</span>
           <Heart size={14} className="text-red-500 fill-red-500" />
-          <span>{t('about.by')} hj01857655</span>
+          <span>{t('about.by')} CPU-JIA</span>
           <span className="mx-1">·</span>
           <span>© 2025</span>
         </div>

@@ -10,7 +10,7 @@
   "nav.about": "О программе",
   "nav.kiroConnected": "Kiro IDE подключен",
 
-  "home.title": "Kiro Account Manager",
+  "home.title": "KiroHub",
   "home.subtitle": "Управление аккаунтами Kiro IDE, умное переключение, мониторинг квот",
   "home.totalAccounts": "Всего аккаунтов",
   "home.activeAccounts": "Активные",
@@ -229,7 +229,7 @@
   "webOAuth.footer": "Безопасный вход через Cognito + KiroWebPortalService",
 
   "about.title": "О программе",
-  "about.appName": "Kiro Account Manager",
+  "about.appName": "KiroHub",
   "about.appDesc": "Умное управление токенами, переключение в один клик, мониторинг квот",
   "about.version": "Версия",
   "about.checkUpdate": "Проверить обновления",
@@ -251,6 +251,7 @@
   "about.clickToEnlarge": "Нажмите для увеличения",
   "about.madeWith": "Сделано с",
   "about.by": "от",
+  "about.originalProject": "Оригинальный проект",
 
   "kiroConfig.title": "Настройка правил",
   "kiroConfig.subtitle": "Управление MCP серверами, Powers и правилами Steering для Kiro IDE",

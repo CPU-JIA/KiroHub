@@ -1,4 +1,4 @@
-// 应用自身设置命令 (存到 ~/.kiro-account-manager/app-settings.json)
+// 应用自身设置命令 (存到 ~/.kirohub/app-settings.json)
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -28,7 +28,7 @@ fn get_app_settings_path() -> PathBuf {
             PathBuf::from(home)
         });
     data_dir
-        .join(".kiro-account-manager")
+        .join(".kirohub")
         .join("app-settings.json")
 }
 

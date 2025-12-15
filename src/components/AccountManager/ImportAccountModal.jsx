@@ -128,58 +128,51 @@ function ImportAccountModal({ onClose, onSuccess }) {
     parseJson(text)
   }
 
-  // 执行 JSON 导入
+  // 执行 JSON 导入（使用批量 API）
   const handleJsonImport = async () => {
     if (!parseResult?.valid.length) return
-    
+
     setImporting(true)
     setImportProgress({ current: 0, total: parseResult.valid.length, currentEmail: '' })
-    
-    const success = []
-    const failed = []
-    
-    for (let i = 0; i < parseResult.valid.length; i++) {
-      const item = parseResult.valid[i]
-      setImportProgress({ 
-        current: i, 
-        total: parseResult.valid.length, 
-        currentEmail: item.refreshToken.slice(0, 20) + '...' 
+
+    try {
+      // 准备批量导入数据
+      const items = parseResult.valid.map(item => ({
+        refreshToken: item.refreshToken,
+        provider: item._inferredProvider || item.provider,
+        clientId: item.clientId || null,
+        clientSecret: item.clientSecret || null,
+        region: item.region || null,
+      }))
+
+      // 调用批量导入 API（后端并发处理）
+      const result = await invoke('batch_import_accounts', {
+        items,
+        concurrency: 5  // 5 并发
       })
-      
-      try {
-        let account
-        // 使用推断的 provider（兼容导出格式）
-        const provider = item._inferredProvider || item.provider
-        if (item._type === 'social') {
-          account = await invoke('add_account_by_social', {
-            refreshToken: item.refreshToken,
-            provider: provider
-          })
-        } else {
-          account = await invoke('add_account_by_idc', {
-            refreshToken: item.refreshToken,
-            clientId: item.clientId,
-            clientSecret: item.clientSecret,
-            region: item.region || null
-          })
-        }
-        success.push({ index: item._index + 1, email: account.email })
-      } catch (e) {
-        failed.push({ index: item._index + 1, error: String(e).slice(0, 50) })
+
+      // 处理结果
+      const success = result.results
+        .filter(r => r.success)
+        .map(r => ({ index: r.index + 1, email: r.email }))
+      const failed = result.results
+        .filter(r => !r.success)
+        .map(r => ({ index: r.index + 1, error: r.error || '未知错误' }))
+
+      setImportProgress({ current: parseResult.valid.length, total: parseResult.valid.length, currentEmail: '' })
+      setImportResult({ success, failed })
+
+      if (success.length > 0) {
+        onSuccess?.()
       }
-      
-      if (i < parseResult.valid.length - 1) {
-        await new Promise(r => setTimeout(r, 500))
-      }
+    } catch (e) {
+      setImportResult({
+        success: [],
+        failed: [{ index: 0, error: String(e).slice(0, 100) }]
+      })
     }
-    
-    setImportProgress({ current: parseResult.valid.length, total: parseResult.valid.length, currentEmail: '' })
-    setImportResult({ success, failed })
+
     setImporting(false)
-    
-    if (success.length > 0) {
-      onSuccess?.()
-    }
   }
 
   // 执行 SSO Token 导入

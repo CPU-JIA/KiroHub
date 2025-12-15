@@ -10,7 +10,7 @@
   "nav.about": "About",
   "nav.kiroConnected": "Kiro IDE Connected",
 
-  "home.title": "Kiro Account Manager",
+  "home.title": "KiroHub",
   "home.subtitle": "Manage your Kiro IDE accounts, smart switching, quota monitoring",
   "home.totalAccounts": "Total Accounts",
   "home.activeAccounts": "Active Accounts",
@@ -242,7 +242,7 @@
   "webOAuth.footer": "Secure login via Cognito + KiroWebPortalService",
 
   "about.title": "About",
-  "about.appName": "Kiro Account Manager",
+  "about.appName": "KiroHub",
   "about.appDesc": "Smart token management, one-click switch, quota monitoring",
   "about.version": "Version",
   "about.checkUpdate": "Check Update",
@@ -264,6 +264,7 @@
   "about.clickToEnlarge": "Click to enlarge",
   "about.madeWith": "Made with",
   "about.by": "by",
+  "about.originalProject": "Original Project",
 
   "kiroConfig.title": "Rules Config",
   "kiroConfig.subtitle": "Manage Kiro IDE MCP servers, Powers and Steering rules",
