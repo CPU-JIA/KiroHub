@@ -2159,8 +2159,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "kiro-account-manager"
-version = "1.4.0"
+name = "kirohub"
+version = "1.0.0"
 dependencies = [
  "async-trait",
  "base64 0.22.1",

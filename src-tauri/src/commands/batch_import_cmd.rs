@@ -3,7 +3,9 @@
 
 use futures::stream::{self, StreamExt};
 use serde::{Deserialize, Serialize};
-use tauri::State;
+use tauri::{AppHandle, State, Emitter};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 use crate::state::AppState;
 use crate::account::Account;
 use crate::auth::{refresh_token_desktop, get_usage_limits_desktop};
@@ -41,6 +43,16 @@ pub struct BatchImportResult {
     pub success_count: usize,
     pub failed_count: usize,
     pub results: Vec<ImportItemResult>,
+}
+
+/// 进度事件 payload
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportProgressPayload {
+    pub current: usize,
+    pub total: usize,
+    pub email: Option<String>,
+    pub success: bool,
 }
 
 /// 处理单个 Social 账号导入（无状态，不访问 AppState）
@@ -155,12 +167,14 @@ async fn process_idc_account(
 /// - concurrency: 并发数（建议 5-10，默认 5）
 #[tauri::command]
 pub async fn batch_import_accounts(
+    app: AppHandle,
     state: State<'_, AppState>,
     items: Vec<ImportItem>,
     concurrency: Option<usize>,
 ) -> Result<BatchImportResult, String> {
     let concurrency = concurrency.unwrap_or(5).min(20).max(1); // 限制 1-20
     let total = items.len();
+    let progress_counter = Arc::new(AtomicUsize::new(0));
 
     println!("[BatchImport] Starting batch import: {} items, concurrency: {}", total, concurrency);
 
@@ -169,38 +183,61 @@ pub async fn batch_import_accounts(
 
     // 并发处理所有导入项
     let results: Vec<(ImportItemResult, Option<Account>)> = stream::iter(indexed_items)
-        .map(|(index, item)| async move {
-            let is_idc = item.client_id.is_some() && item.client_secret.is_some();
+        .map(|(index, item)| {
+            let app_handle = app.clone();
+            let counter = Arc::clone(&progress_counter);
+            async move {
+                let is_idc = item.client_id.is_some() && item.client_secret.is_some();
 
-            let result = if is_idc {
-                process_idc_account(
-                    &item.refresh_token,
-                    item.client_id.clone().unwrap(),
-                    item.client_secret.clone().unwrap(),
-                    item.region.clone(),
-                ).await
-            } else {
-                process_social_account(&item.refresh_token, item.provider.clone()).await
-            };
+                let result = if is_idc {
+                    process_idc_account(
+                        &item.refresh_token,
+                        item.client_id.clone().unwrap(),
+                        item.client_secret.clone().unwrap(),
+                        item.region.clone(),
+                    ).await
+                } else {
+                    process_social_account(&item.refresh_token, item.provider.clone()).await
+                };
 
-            match result {
-                Ok((account, _)) => {
-                    let item_result = ImportItemResult {
-                        index,
-                        success: true,
-                        email: Some(account.email.clone()),
-                        error: None,
-                    };
-                    (item_result, Some(account))
-                }
-                Err(e) => {
-                    let item_result = ImportItemResult {
-                        index,
-                        success: false,
-                        email: None,
-                        error: Some(e.chars().take(100).collect()),
-                    };
-                    (item_result, None)
+                // 更新进度计数
+                let current = counter.fetch_add(1, Ordering::SeqCst) + 1;
+
+                match result {
+                    Ok((account, _)) => {
+                        // 发送进度事件
+                        let _ = app_handle.emit("batch-import-progress", ImportProgressPayload {
+                            current,
+                            total,
+                            email: Some(account.email.clone()),
+                            success: true,
+                        });
+
+                        let item_result = ImportItemResult {
+                            index,
+                            success: true,
+                            email: Some(account.email.clone()),
+                            error: None,
+                        };
+                        (item_result, Some(account))
+                    }
+                    Err(e) => {
+                        // 发送进度事件（失败）
+                        let _ = app_handle.emit("batch-import-progress", ImportProgressPayload {
+                            current,
+                            total,
+                            email: None,
+                            success: false,
+                        });
+
+                        let item_result = ImportItemResult {
+                            index,
+                            success: false,
+                            email: None,
+                            error: Some(e.chars().take(100).collect()),
+                        };
+                        (item_result, None)
+                    }
                 }
             }
         })

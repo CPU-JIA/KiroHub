@@ -1,6 +1,7 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { X, Upload, FileJson, AlertCircle, CheckCircle, Loader2, Key, FileCode } from 'lucide-react'
 import { invoke } from '@tauri-apps/api/core'
+import { listen } from '@tauri-apps/api/event'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useI18n } from '../../i18n.jsx'
 
@@ -135,6 +136,12 @@ function ImportAccountModal({ onClose, onSuccess }) {
     setImporting(true)
     setImportProgress({ current: 0, total: parseResult.valid.length, currentEmail: '' })
 
+    // 监听进度事件
+    const unlisten = await listen('batch-import-progress', (event) => {
+      const { current, total, email, success } = event.payload
+      setImportProgress({ current, total, currentEmail: email || '' })
+    })
+
     try {
       // 准备批量导入数据
       const items = parseResult.valid.map(item => ({
@@ -170,6 +177,9 @@ function ImportAccountModal({ onClose, onSuccess }) {
         success: [],
         failed: [{ index: 0, error: String(e).slice(0, 100) }]
       })
+    } finally {
+      // 取消监听
+      unlisten()
     }
 
     setImporting(false)
@@ -277,13 +287,18 @@ function ImportAccountModal({ onClose, onSuccess }) {
         <span className={colors.text}>{isSSO ? t('import.ssoImporting') : t('import.importing')}</span>
       </div>
       <div className={`h-2 ${isDark ? 'bg-white/10' : 'bg-gray-200'} rounded-full overflow-hidden`}>
-        <div 
+        <div
           className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-300"
-          style={{ width: `${(progress.current / progress.total) * 100}%` }}
+          style={{ width: `${progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%` }}
         />
       </div>
-      <div className={`text-sm ${colors.textMuted}`}>
-        {progress.current}/{progress.total}
+      <div className={`text-sm ${colors.textMuted} flex justify-between items-center`}>
+        <span>{progress.current}/{progress.total}</span>
+        {progress.currentEmail && (
+          <span className={`text-xs ${isDark ? 'text-green-400' : 'text-green-600'} truncate max-w-[200px]`}>
+            ✓ {progress.currentEmail}
+          </span>
+        )}
       </div>
     </div>
   )
