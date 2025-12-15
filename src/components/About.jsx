@@ -171,7 +171,7 @@ function About() {
             <h3 className={`text-sm font-medium ${colors.text} mb-4 text-center`}>{t('about.links')}</h3>
             <div className="space-y-3">
               <a
-                href="https://github.com/CPU-JIA/kiro-account-manager"
+                href="https://github.com/CPU-JIA/KiroHub"
                 target="_blank"
                 rel="noopener noreferrer"
                 className={`flex items-center gap-3 ${isDark ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-900 hover:bg-gray-800'} rounded-xl p-3 transition-colors group`}

@@ -6,9 +6,9 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20macOS-blue" alt="Platform">
-  <img src="https://img.shields.io/github/v/release/CPU-JIA/kiro-account-manager?label=Version&color=green" alt="Version">
-  <img src="https://img.shields.io/github/downloads/CPU-JIA/kiro-account-manager/total?color=brightgreen" alt="Downloads">
-  <img src="https://img.shields.io/github/license/CPU-JIA/kiro-account-manager?color=orange" alt="License">
+  <img src="https://img.shields.io/github/v/release/CPU-JIA/KiroHub?label=Version&color=green" alt="Version">
+  <img src="https://img.shields.io/github/downloads/CPU-JIA/KiroHub/total?color=brightgreen" alt="Downloads">
+  <img src="https://img.shields.io/github/license/CPU-JIA/KiroHub?color=orange" alt="License">
 </p>
 
 <p align="center">
@@ -97,9 +97,9 @@ Special thanks to the original author for creating this excellent tool!
 
 ## Download
 
-[![Release](https://img.shields.io/github/v/release/CPU-JIA/kiro-account-manager?style=flat-square)](https://github.com/CPU-JIA/kiro-account-manager/releases/latest)
+[![Release](https://img.shields.io/github/v/release/CPU-JIA/KiroHub?style=flat-square)](https://github.com/CPU-JIA/KiroHub/releases/latest)
 
-**[Download Latest Version](https://github.com/CPU-JIA/kiro-account-manager/releases/latest)**
+**[Download Latest Version](https://github.com/CPU-JIA/KiroHub/releases/latest)**
 
 | Platform | File Type | Description |
 |----------|-----------|-------------|
@@ -121,14 +121,14 @@ Special thanks to the original author for creating this excellent tool!
 
 ## Quick Start
 
-1. Download the installer for your platform from [Releases](https://github.com/CPU-JIA/kiro-account-manager/releases/latest)
+1. Download the installer for your platform from [Releases](https://github.com/CPU-JIA/KiroHub/releases/latest)
 2. Install and launch the application
 3. Login with Google, GitHub, or BuilderId
 4. Manage your Kiro accounts with ease!
 
 ## Feedback
 
-- [Submit Issue](https://github.com/CPU-JIA/kiro-account-manager/issues)
+- [Submit Issue](https://github.com/CPU-JIA/KiroHub/issues)
 
 ## Acknowledgments
 

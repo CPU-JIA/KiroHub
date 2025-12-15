@@ -4,7 +4,7 @@ version = "1.0.0"
 description = "KiroHub - Kiro IDE Account Manager"
 authors = ["CPU-JIA"]
 license = "GPL-3.0"
-repository = "https://github.com/CPU-JIA/kiro-account-manager"
+repository = "https://github.com/CPU-JIA/KiroHub"
 edition = "2021"
 
 [build-dependencies]

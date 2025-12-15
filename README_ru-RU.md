@@ -6,9 +6,9 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20macOS-blue" alt="Platform">
-  <img src="https://img.shields.io/github/v/release/CPU-JIA/kiro-account-manager?label=Version&color=green" alt="Version">
-  <img src="https://img.shields.io/github/downloads/CPU-JIA/kiro-account-manager/total?color=brightgreen" alt="Downloads">
-  <img src="https://img.shields.io/github/license/CPU-JIA/kiro-account-manager?color=orange" alt="License">
+  <img src="https://img.shields.io/github/v/release/CPU-JIA/KiroHub?label=Version&color=green" alt="Version">
+  <img src="https://img.shields.io/github/downloads/CPU-JIA/KiroHub/total?color=brightgreen" alt="Downloads">
+  <img src="https://img.shields.io/github/license/CPU-JIA/KiroHub?color=orange" alt="License">
 </p>
 
 <p align="center">
@@ -97,9 +97,9 @@
 
 ## Скачать
 
-[![Release](https://img.shields.io/github/v/release/CPU-JIA/kiro-account-manager?style=flat-square)](https://github.com/CPU-JIA/kiro-account-manager/releases/latest)
+[![Release](https://img.shields.io/github/v/release/CPU-JIA/KiroHub?style=flat-square)](https://github.com/CPU-JIA/KiroHub/releases/latest)
 
-**[Скачать последнюю версию](https://github.com/CPU-JIA/kiro-account-manager/releases/latest)**
+**[Скачать последнюю версию](https://github.com/CPU-JIA/KiroHub/releases/latest)**
 
 | Платформа | Тип файла | Описание |
 |-----------|-----------|----------|
@@ -121,14 +121,14 @@
 
 ## Быстрый старт
 
-1. Скачайте установщик для вашей платформы из [Releases](https://github.com/CPU-JIA/kiro-account-manager/releases/latest)
+1. Скачайте установщик для вашей платформы из [Releases](https://github.com/CPU-JIA/KiroHub/releases/latest)
 2. Установите и запустите приложение
 3. Войдите через Google, GitHub или BuilderId
 4. Легко управляйте своими аккаунтами Kiro!
 
 ## Обратная связь
 
-- [Создать Issue](https://github.com/CPU-JIA/kiro-account-manager/issues)
+- [Создать Issue](https://github.com/CPU-JIA/KiroHub/issues)
 
 ## Благодарности
 
