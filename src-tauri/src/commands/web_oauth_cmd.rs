@@ -223,9 +223,13 @@ fn update_auth_state_web(
         avatar: None,
         provider: provider.to_string(),
     };
-    *state.auth.user.lock().unwrap() = Some(user);
-    *state.auth.access_token.lock().unwrap() = Some(access_token.to_string());
-    *state.auth.refresh_token.lock().unwrap() = Some(refresh_token.to_string());
+
+    state.auth.set_all(
+        Some(user),
+        Some(access_token.to_string()),
+        Some(refresh_token.to_string()),
+        None
+    ).ok();  // 忽略错误，不影响主流程
 }
 
 #[tauri::command]

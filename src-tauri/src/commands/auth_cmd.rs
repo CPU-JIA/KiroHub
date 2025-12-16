@@ -24,14 +24,12 @@ pub struct AddKiroAccountRequest {
 
 #[tauri::command]
 pub fn get_current_user(state: State<AppState>) -> Option<User> {
-    state.auth.user.lock().unwrap().clone()
+    state.auth.get_user()
 }
 
 #[tauri::command]
-pub fn logout(state: State<AppState>) {
-    *state.auth.user.lock().unwrap() = None;
-    *state.auth.csrf_token.lock().unwrap() = None;
-    *state.auth.access_token.lock().unwrap() = None;
+pub fn logout(state: State<AppState>) -> Result<(), String> {
+    state.auth.clear()
 }
 
 #[tauri::command]
@@ -106,7 +104,7 @@ async fn login_social(
     store.save_to_file();
     drop(store);
 
-    update_auth_state(&state, &email, &provider_id, &auth_result.access_token, &auth_result.refresh_token);
+    update_auth_state(&state, &email, &provider_id, &auth_result.access_token, &auth_result.refresh_token).ok();
     println!("\n[{}] LOGIN SUCCESS: {}", auth_method, account.email);
 
     let _ = app_handle.emit("login-success", account.id.clone());
@@ -183,14 +181,14 @@ async fn login_idc(
     store.save_to_file();
     drop(store);
 
-    update_auth_state(&state, &email, &provider_id, &auth_result.access_token, &auth_result.refresh_token);
+    update_auth_state(&state, &email, &provider_id, &auth_result.access_token, &auth_result.refresh_token).ok();
     println!("\n[{}] LOGIN SUCCESS: {}", auth_method, account.email);
 
     let _ = app_handle.emit("login-success", account.id.clone());
     Ok(format!("{} login completed for {}", auth_method, email))
 }
 
-fn update_auth_state(state: &State<'_, AppState>, email: &str, provider: &str, access_token: &str, refresh_token: &str) {
+fn update_auth_state(state: &State<'_, AppState>, email: &str, provider: &str, access_token: &str, refresh_token: &str) -> Result<(), String> {
     let user = User {
         id: uuid::Uuid::new_v4().to_string(),
         email: email.to_string(),
@@ -198,10 +196,19 @@ fn update_auth_state(state: &State<'_, AppState>, email: &str, provider: &str, a
         avatar: None,
         provider: provider.to_string(),
     };
-    *state.auth.user.lock().unwrap() = Some(user);
-    *state.auth.access_token.lock().unwrap() = Some(access_token.to_string());
-    *state.auth.refresh_token.lock().unwrap() = Some(refresh_token.to_string());
-    *state.pending_login.lock().unwrap() = None;
+
+    state.auth.set_all(
+        Some(user),
+        Some(access_token.to_string()),
+        Some(refresh_token.to_string()),
+        None
+    )?;
+
+    if let Ok(mut pending_lock) = state.pending_login.lock() {
+        *pending_lock = None;
+    }
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -260,7 +267,7 @@ pub async fn handle_kiro_social_callback(
     store.save_to_file();
     drop(store);
     
-    update_auth_state(&state, &email, &pending.provider, &token_response.access_token, &token_response.refresh_token);
+    update_auth_state(&state, &email, &pending.provider, &token_response.access_token, &token_response.refresh_token).ok();
     let _ = app_handle.emit("login-success", account.id);
     println!("Social callback login completed: {}", email);
     Ok(())
@@ -289,16 +296,7 @@ pub async fn add_kiro_account(
         .and_then(|u| u.user_info.as_ref())
         .and_then(|ui| ui.user_id.clone());
 
-    if let Ok(mut token_lock) = state.auth.access_token.lock() {
-        *token_lock = Some(request.access_token.clone());
-    }
-    if let Ok(mut token_lock) = state.auth.refresh_token.lock() {
-        *token_lock = Some(request.refresh_token.clone());
-    }
-    if let Ok(mut token_lock) = state.auth.csrf_token.lock() {
-        *token_lock = Some(request.csrf_token.clone());
-    }
-
+    // 使用批量设置 API
     let user = User {
         id: uuid::Uuid::new_v4().to_string(),
         email: final_email.clone(),
@@ -306,9 +304,14 @@ pub async fn add_kiro_account(
         avatar: None,
         provider: request.idp.clone(),
     };
-    if let Ok(mut user_lock) = state.auth.user.lock() {
-        *user_lock = Some(user);
-    }
+
+    state.auth.set_all(
+        Some(user),
+        Some(request.access_token.clone()),
+        Some(request.refresh_token.clone()),
+        Some(request.csrf_token.clone())
+    )?;
+
     if let Ok(mut pending_lock) = state.pending_login.lock() {
         *pending_lock = None;
     }

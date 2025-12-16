@@ -1,10 +1,10 @@
 // Auth 模块 - 当前使用的认证相关代码
 
 use serde::{Deserialize, Serialize};
-use std::sync::Mutex;
+use std::sync::RwLock;
 
 // ============================================================
-// User 和 AuthState
+// User 和 AuthContext
 // ============================================================
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -16,21 +16,49 @@ pub struct User {
     pub provider: String,
 }
 
+/// 认证上下文 - 合并所有认证相关状态
+#[derive(Debug, Clone, Default)]
+pub struct AuthContext {
+    pub user: Option<User>,
+    pub csrf_token: Option<String>,
+    pub access_token: Option<String>,
+    pub refresh_token: Option<String>,
+}
+
+/// 认证状态 - 使用 RwLock 提高并发性能
 pub struct AuthState {
-    pub user: Mutex<Option<User>>,
-    pub csrf_token: Mutex<Option<String>>,
-    pub access_token: Mutex<Option<String>>,
-    pub refresh_token: Mutex<Option<String>>,
+    context: RwLock<AuthContext>,
 }
 
 impl AuthState {
     pub fn new() -> Self {
         Self {
-            user: Mutex::new(None),
-            csrf_token: Mutex::new(None),
-            access_token: Mutex::new(None),
-            refresh_token: Mutex::new(None),
+            context: RwLock::new(AuthContext::default()),
         }
+    }
+
+    /// 获取用户（读锁）
+    pub fn get_user(&self) -> Option<User> {
+        self.context.read().ok()?.user.clone()
+    }
+
+    /// 批量设置（单次写锁，性能更好）
+    pub fn set_all(&self, user: Option<User>, access_token: Option<String>, refresh_token: Option<String>, csrf_token: Option<String>) -> Result<(), String> {
+        let mut ctx = self.context.write()
+            .map_err(|e| format!("Failed to acquire write lock: {}", e))?;
+        ctx.user = user;
+        ctx.access_token = access_token;
+        ctx.refresh_token = refresh_token;
+        ctx.csrf_token = csrf_token;
+        Ok(())
+    }
+
+    /// 清空所有状态
+    pub fn clear(&self) -> Result<(), String> {
+        let mut ctx = self.context.write()
+            .map_err(|e| format!("Failed to acquire write lock: {}", e))?;
+        *ctx = AuthContext::default();
+        Ok(())
     }
 }
 

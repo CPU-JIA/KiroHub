@@ -373,12 +373,13 @@ pub async fn add_account_by_social(
         avatar: None,
         provider: idp,
     };
-    if let Ok(mut user_lock) = state.auth.user.lock() {
-        *user_lock = Some(user);
-    }
-    if let Ok(mut token_lock) = state.auth.access_token.lock() {
-        *token_lock = Some(access_token);
-    }
+
+    state.auth.set_all(
+        Some(user),
+        Some(access_token),
+        None,
+        None
+    )?;
 
     Ok(account)
 }

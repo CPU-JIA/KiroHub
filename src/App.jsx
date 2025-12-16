@@ -13,6 +13,7 @@ import AuthCallback from './components/AuthCallback'
 import UpdateChecker from './components/UpdateChecker'
 
 import { useTheme } from './contexts/ThemeContext'
+import { useAppSettings } from './contexts/AppSettingsContext'
 import { isAccountBanned, DEFAULTS } from './utils/constants'
 
 function App() {
@@ -20,13 +21,14 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [activeMenu, setActiveMenu] = useState('home')
   const { colors } = useTheme()
+  const { settings: appSettings } = useAppSettings()
   const refreshTimerRef = useRef(null)
 
   // 通用的 token 刷新逻辑（合并了启动和定时刷新）
   const refreshExpiredTokens = async (logPrefix = 'AutoRefresh') => {
     try {
-      const settings = await invoke('get_app_settings').catch(() => ({}))
-      if (!settings.autoRefresh) return
+      // 使用缓存的设置
+      if (!appSettings?.autoRefresh) return
 
       const accounts = await invoke('get_accounts')
       if (!accounts || accounts.length === 0) return
@@ -73,49 +75,50 @@ function App() {
       clearInterval(refreshTimerRef.current)
     }
 
+    // 等待设置加载完成
+    if (!appSettings) return
+
     // 启动时只刷新 token（快速启动）
     refreshExpiredTokens('Startup')
 
-    // 从设置读取刷新间隔
-    const settings = await invoke('get_app_settings').catch(() => ({}))
-    const intervalMs = (settings.autoRefreshInterval || 50) * 60 * 1000
+    // 使用缓存的刷新间隔
+    const intervalMs = (appSettings.autoRefreshInterval || 50) * 60 * 1000
 
-    console.log(`[AutoRefresh] 定时器间隔: ${settings.autoRefreshInterval || 50} 分钟`)
+    console.log(`[AutoRefresh] 定时器间隔: ${appSettings.autoRefreshInterval || 50} 分钟`)
     refreshTimerRef.current = setInterval(() => refreshExpiredTokens(), intervalMs)
   }
 
+  // 当设置变化时重启定时器
+  useEffect(() => {
+    if (appSettings) {
+      startAutoRefreshTimer()
+    }
+    return () => {
+      if (refreshTimerRef.current) {
+        clearInterval(refreshTimerRef.current)
+      }
+    }
+  }, [appSettings])
+
   useEffect(() => {
     checkAuth()
-    
+
     // 检查是否是回调页面
     const url = new URL(window.location.href)
     if (url.pathname === '/callback' && (url.searchParams.has('code') || url.searchParams.has('state'))) {
       setActiveMenu('callback')
       return
     }
-    
+
     // 监听登录成功事件
     const unlisten = listen('login-success', (event) => {
       console.log('Login success in App:', event.payload)
       checkAuth()
       setActiveMenu('token')
     })
-    
-    // 监听设置变化，重启定时器
-    const unlistenSettings = listen('settings-changed', () => {
-      console.log('[AutoRefresh] 设置已变化，重启定时器')
-      startAutoRefreshTimer()
-    })
-    
-    // 启动自动刷新定时器
-    startAutoRefreshTimer()
-    
-    return () => { 
+
+    return () => {
       unlisten.then(fn => fn())
-      unlistenSettings.then(fn => fn())
-      if (refreshTimerRef.current) {
-        clearInterval(refreshTimerRef.current)
-      }
     }
   }, [])
 
