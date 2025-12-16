@@ -6,6 +6,7 @@ mod aws_sso_client;
 mod browser;
 mod codewhisperer_client;
 mod commands;
+mod constants;
 mod deep_link_handler;
 
 mod kiro;
@@ -17,6 +18,7 @@ mod providers;
 mod state;
 mod steering;
 mod account;
+mod validation;
 
 use account::AccountStore;
 use auth::AuthState;

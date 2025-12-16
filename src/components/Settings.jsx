@@ -74,7 +74,8 @@ function Settings() {
       }
     } catch (err) {
       console.error('Failed to load settings:', err)
-      // 暂时不显示错误弹窗，避免阻塞页面
+      // 显示非阻塞的错误提示
+      showError('加载设置失败', '部分设置可能无法正常显示').catch(() => {})
     } finally {
       setLoading(false)
     }

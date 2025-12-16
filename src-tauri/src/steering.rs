@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Component, PathBuf};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -16,6 +16,49 @@ pub struct SteeringFile {
 pub struct SteeringManager;
 
 impl SteeringManager {
+    /// 验证文件名，防止路径遍历攻击
+    fn validate_file_name(file_name: &str) -> Result<(), String> {
+        // 检查空文件名
+        if file_name.is_empty() {
+            return Err("文件名不能为空".to_string());
+        }
+
+        let path = std::path::Path::new(file_name);
+
+        // 检查绝对路径
+        if path.is_absolute() {
+            return Err("不允许使用绝对路径".to_string());
+        }
+
+        // 检查危险的路径组件（如 .. 或根目录）
+        for component in path.components() {
+            match component {
+                Component::ParentDir => {
+                    return Err("文件名中不允许包含 '..'".to_string());
+                }
+                Component::RootDir => {
+                    return Err("不允许使用根目录路径".to_string());
+                }
+                Component::Prefix(_) => {
+                    return Err("不允许使用路径前缀".to_string());
+                }
+                _ => {}
+            }
+        }
+
+        // 检查是否只是一个简单的文件名（不包含目录分隔符）
+        if path.components().count() > 1 {
+            return Err("文件名不能包含目录路径".to_string());
+        }
+
+        // 检查文件扩展名必须是 .md
+        if path.extension().map(|e| e != "md").unwrap_or(true) {
+            return Err("文件必须是 .md 格式".to_string());
+        }
+
+        Ok(())
+    }
+
     /// 获取 steering 目录路径
     pub fn steering_dir() -> Option<PathBuf> {
         dirs::home_dir().map(|h| h.join(".kiro").join("steering"))
@@ -65,6 +108,9 @@ impl SteeringManager {
 
     /// 读取单个 steering 文件
     pub fn load(file_name: &str) -> Result<SteeringFile, String> {
+        // 验证文件名，防止路径遍历
+        Self::validate_file_name(file_name)?;
+
         let dir = Self::steering_dir().ok_or("无法获取用户目录")?;
         let path = dir.join(file_name);
         
@@ -94,9 +140,12 @@ impl SteeringManager {
 
     /// 保存 steering 文件
     pub fn save(file_name: &str, content: &str) -> Result<(), String> {
+        // 验证文件名，防止路径遍历
+        Self::validate_file_name(file_name)?;
+
         let dir = Self::steering_dir().ok_or("无法获取用户目录")?;
         fs::create_dir_all(&dir).ok();
-        
+
         let path = dir.join(file_name);
         fs::write(&path, content)
             .map_err(|e| format!("写入失败: {}", e))
@@ -104,6 +153,9 @@ impl SteeringManager {
 
     /// 删除 steering 文件
     pub fn delete(file_name: &str) -> Result<(), String> {
+        // 验证文件名，防止路径遍历
+        Self::validate_file_name(file_name)?;
+
         let dir = Self::steering_dir().ok_or("无法获取用户目录")?;
         let path = dir.join(file_name);
         
@@ -117,9 +169,12 @@ impl SteeringManager {
 
     /// 创建新的 steering 文件
     pub fn create(file_name: &str, content: &str) -> Result<SteeringFile, String> {
+        // 验证文件名，防止路径遍历
+        Self::validate_file_name(file_name)?;
+
         let dir = Self::steering_dir().ok_or("无法获取用户目录")?;
         fs::create_dir_all(&dir).ok();
-        
+
         let path = dir.join(file_name);
         
         if path.exists() {

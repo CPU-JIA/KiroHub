@@ -12,9 +12,14 @@ pub struct OAuthCallbackResult {
     pub state: String,
 }
 
+// 类型别名，简化复杂类型
+type CallbackReceiver = Receiver<Result<OAuthCallbackResult, String>>;
+type CallbackSender = Sender<Result<OAuthCallbackResult, String>>;
+type PendingSender = (String, CallbackSender);
+
 /// Deep Link OAuth 回调等待器
 pub struct DeepLinkCallbackWaiter {
-    result_rx: Arc<Mutex<Option<Receiver<Result<OAuthCallbackResult, String>>>>>,
+    result_rx: Arc<Mutex<Option<CallbackReceiver>>>,
     timeout: Duration,
 }
 
@@ -37,7 +42,7 @@ impl DeepLinkCallbackWaiter {
 }
 
 /// 全局回调发送器存储
-static PENDING_SENDER: std::sync::OnceLock<Mutex<Option<(String, Sender<Result<OAuthCallbackResult, String>>)>>> = std::sync::OnceLock::new();
+static PENDING_SENDER: std::sync::OnceLock<Mutex<Option<PendingSender>>> = std::sync::OnceLock::new();
 
 /// 注册一个新的回调等待器，返回接收端
 pub fn register_waiter(state: &str) -> DeepLinkCallbackWaiter {

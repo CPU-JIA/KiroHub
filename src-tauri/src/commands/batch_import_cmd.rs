@@ -172,7 +172,7 @@ pub async fn batch_import_accounts(
     items: Vec<ImportItem>,
     concurrency: Option<usize>,
 ) -> Result<BatchImportResult, String> {
-    let concurrency = concurrency.unwrap_or(5).min(20).max(1); // 限制 1-20
+    let concurrency = concurrency.unwrap_or(5).clamp(1, 20); // 限制 1-20
     let total = items.len();
     let progress_counter = Arc::new(AtomicUsize::new(0));
 

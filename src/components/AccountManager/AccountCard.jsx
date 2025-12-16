@@ -1,8 +1,10 @@
+import { memo } from 'react'
 import { RefreshCw, Eye, Trash2, Copy, Check, Clock, Repeat, Edit2 } from 'lucide-react'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useI18n } from '../../i18n.jsx'
 import { getUsagePercent, getProgressBarColor } from './hooks/useAccountStats'
 import { getQuota, getUsed, getSubType, getSubPlan } from '../../utils/accountStats'
+import { isAccountBanned, isAccountNormal } from '../../utils/constants'
 
 function AccountCard({
   account,
@@ -30,8 +32,8 @@ function AccountCard({
   const breakdown = account.usageData?.usageBreakdownList?.[0]
   const percent = getUsagePercent(used, quota)
   const isExpired = account.expiresAt && new Date(account.expiresAt.replace(/\//g, '-')) < new Date()
-  const isBanned = account.status === '封禁' || account.status === '已封禁'
-  const isNormal = account.status === '正常' || account.status === '有效'
+  const isBanned = isAccountBanned(account.status)
+  const isNormal = isAccountNormal(account.status)
 
   // 状态光环颜色
   const glowColor = isCurrentAccount
@@ -200,4 +202,4 @@ function AccountCard({
   )
 }
 
-export default AccountCard
+export default memo(AccountCard)

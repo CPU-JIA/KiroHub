@@ -52,15 +52,12 @@ impl KiroAuthServiceClient {
             state,
         );
 
-        println!("\n[1] KIRO AUTH LOGIN");
-        println!("Provider: {}", provider);
-        println!("Redirect URI: {}", redirect_uri);
-        println!("Code Challenge: {}", code_challenge);
-        println!("State: {}", state);
-        println!();
+        // 仅在 debug 模式下打印非敏感信息
+        #[cfg(debug_assertions)]
+        println!("[KiroAuth] Login Provider: {}", provider);
 
         let login_url = login_url.trim().to_string();
-        
+
         open_browser(&login_url)?;
 
         Ok(())
@@ -74,11 +71,9 @@ impl KiroAuthServiceClient {
         redirect_uri: &str,
         invitation_code: Option<&str>,
     ) -> Result<T, String> {
-        println!("\n[6] CREATE TOKEN REQUEST");
-        println!("URL: {}", self.create_token_url());
-        println!("Code: {}", code);
-        println!("Code Verifier: {}", code_verifier);
-        println!("Redirect URI: {}", redirect_uri);
+        // 仅在 debug 模式下打印非敏感信息
+        #[cfg(debug_assertions)]
+        println!("[KiroAuth] CreateToken Request to {}", self.create_token_url());
 
         #[derive(serde::Serialize)]
         struct Body<'a> {
@@ -109,31 +104,16 @@ impl KiroAuthServiceClient {
             .await
             .map_err(|e| format!("Kiro Auth Service read body failed: {}", e))?;
 
-        println!("\n[6] CREATE TOKEN RESPONSE");
-        println!("Status: {}", status);
-        
-        let body_str = String::from_utf8_lossy(&bytes);
-        
+        #[cfg(debug_assertions)]
+        println!("[KiroAuth] CreateToken Status: {}", status);
+
         if !status.is_success() {
-            println!("Error: {}", body_str);
+            // 不打印完整错误内容，可能包含敏感信息
             return Err(format!(
-                "Kiro Auth Service token creation failed: {} - {}",
-                status,
-                body_str
+                "Kiro Auth Service token creation failed: {}",
+                status
             ));
         }
-
-        // 完整格式化打印 JSON
-        match serde_json::from_str::<serde_json::Value>(&body_str) {
-            Ok(json) => {
-                match serde_json::to_string_pretty(&json) {
-                    Ok(pretty) => println!("{}", pretty),
-                    Err(_) => println!("{}", body_str),
-                }
-            }
-            Err(_) => println!("{}", body_str),
-        }
-        println!();
 
         serde_json::from_slice::<T>(&bytes).map_err(|e| format!(
             "Kiro Auth Service token creation parse failed: {}",
@@ -146,9 +126,9 @@ impl KiroAuthServiceClient {
         &self,
         refresh_token: &str,
     ) -> Result<T, String> {
-        println!("\n[Social] REFRESH TOKEN REQUEST");
-        println!("URL: {}", self.refresh_token_url());
-        println!("RefreshToken: {}...", &refresh_token[..20.min(refresh_token.len())]);
+        // 仅在 debug 模式下打印非敏感信息
+        #[cfg(debug_assertions)]
+        println!("[KiroAuth] RefreshToken Request");
 
         #[derive(serde::Serialize)]
         struct Body<'a> {
@@ -172,32 +152,17 @@ impl KiroAuthServiceClient {
             .await
             .map_err(|e| format!("Kiro Auth Service read body failed: {}", e))?;
 
-        println!("\n[Social] REFRESH TOKEN RESPONSE");
-        println!("Status: {}", status);
-
-        let body_str = String::from_utf8_lossy(&bytes);
+        #[cfg(debug_assertions)]
+        println!("[KiroAuth] RefreshToken Status: {}", status);
 
         if !status.is_success() {
-            println!("Error: {}", body_str);
             if status.as_u16() == 401 {
                 return Err("RefreshToken 已过期或无效".to_string());
             }
             return Err(format!(
-                "Kiro Auth Service token refresh failed: {} - {}",
-                status,
-                body_str
+                "Kiro Auth Service token refresh failed: {}",
+                status
             ));
-        }
-
-        // 格式化打印 JSON
-        match serde_json::from_str::<serde_json::Value>(&body_str) {
-            Ok(json) => {
-                match serde_json::to_string_pretty(&json) {
-                    Ok(pretty) => println!("{}", pretty),
-                    Err(_) => println!("{}", body_str),
-                }
-            }
-            Err(_) => println!("{}", body_str),
         }
 
         serde_json::from_slice::<T>(&bytes).map_err(|e| format!(

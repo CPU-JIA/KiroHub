@@ -7,6 +7,8 @@ use crate::auth::{User, refresh_token_desktop, get_usage_limits_desktop};
 use crate::codewhisperer_client::CodeWhispererClient;
 use crate::providers::{AuthProvider, SocialProvider, IdcProvider, RefreshMetadata};
 use crate::kiro::get_machine_id;
+use crate::constants::*;
+use crate::validation::{validate_email, validate_provider, validate_token};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -23,25 +25,45 @@ pub struct VerifyAccountResponse {
     pub refresh_token: String,
 }
 
-#[tauri::command]
-pub fn get_accounts(state: State<AppState>) -> Vec<Account> {
-    state.store.lock().unwrap().get_all()
+#[derive(Debug, Clone, Deserialize)]
+pub struct VerifyAccountRequest {
+    #[serde(rename = "refreshToken")]
+    pub refresh_token: String,
+    pub provider: String,
+    // IdC 账号需要的额外参数
+    #[serde(rename = "clientId")]
+    pub client_id: Option<String>,
+    #[serde(rename = "clientSecret")]
+    pub client_secret: Option<String>,
+    pub region: Option<String>,
 }
 
 #[tauri::command]
-pub fn delete_account(state: State<AppState>, id: String) -> bool {
-    state.store.lock().unwrap().delete(&id)
+pub fn get_accounts(state: State<AppState>) -> Result<Vec<Account>, String> {
+    let store = state.store.lock()
+        .map_err(|e| format!("Failed to acquire lock: {}", e))?;
+    Ok(store.get_all())
 }
 
 #[tauri::command]
-pub fn delete_accounts(state: State<AppState>, ids: Vec<String>) -> usize {
-    state.store.lock().unwrap().delete_many(&ids)
+pub fn delete_account(state: State<AppState>, id: String) -> Result<bool, String> {
+    let mut store = state.store.lock()
+        .map_err(|e| format!("Failed to acquire lock: {}", e))?;
+    Ok(store.delete(&id))
+}
+
+#[tauri::command]
+pub fn delete_accounts(state: State<AppState>, ids: Vec<String>) -> Result<usize, String> {
+    let mut store = state.store.lock()
+        .map_err(|e| format!("Failed to acquire lock: {}", e))?;
+    Ok(store.delete_many(&ids))
 }
 
 #[tauri::command]
 pub async fn sync_account(state: State<'_, AppState>, id: String) -> Result<Account, String> {
     let account = {
-        let store = state.store.lock().unwrap();
+        let store = state.store.lock()
+            .map_err(|e| format!("Failed to acquire lock: {}", e))?;
         store.accounts.iter().find(|a| a.id == id).cloned()
     }.ok_or("Account not found")?;
 
@@ -52,8 +74,8 @@ pub async fn sync_account(state: State<'_, AppState>, id: String) -> Result<Acco
     
     // 根据 provider 选择刷新接口
     // 注意：Web OAuth 的 refresh_token 也是 aor 开头的 RefreshToken Cookie，可以用 Desktop API
-    let (new_access_token, new_refresh_token, expires_in, new_profile_arn, new_id_token, new_sso_session_id) = 
-        if provider_str == "BuilderId" {
+    let (new_access_token, new_refresh_token, expires_in, new_profile_arn, new_id_token, new_sso_session_id) =
+        if provider_str == PROVIDER_BUILDER_ID {
             // BuilderId -> AWS OIDC
             let metadata = RefreshMetadata {
                 client_id: account.client_id.clone(),
@@ -61,7 +83,7 @@ pub async fn sync_account(state: State<'_, AppState>, id: String) -> Result<Acco
                 region: account.region.clone(),
                 ..Default::default()
             };
-            let idc_provider = IdcProvider::new("BuilderId", metadata.region.as_deref().unwrap_or("us-east-1"), None);
+            let idc_provider = IdcProvider::new(PROVIDER_BUILDER_ID, metadata.region.as_deref().unwrap_or(DEFAULT_AWS_REGION), None);
             let auth_result = idc_provider.refresh_token(refresh_token_str, metadata).await?;
             (auth_result.access_token, Some(auth_result.refresh_token), auth_result.expires_in, None, auth_result.id_token, auth_result.sso_session_id)
         } else {
@@ -77,13 +99,13 @@ pub async fn sync_account(state: State<'_, AppState>, id: String) -> Result<Acco
         };
     
     // 获取 usage 数据
-    let (usage_data, is_banned): (serde_json::Value, bool) = if provider_str == "BuilderId" {
+    let (usage_data, is_banned): (serde_json::Value, bool) = if provider_str == PROVIDER_BUILDER_ID {
         let machine_id = get_machine_id();
         let cw_client = CodeWhispererClient::new(&machine_id);
         let usage_call = cw_client.get_usage_limits(&new_access_token).await;
         let (usage, banned) = match &usage_call {
             Ok(u) => (Some(u.clone()), false),
-            Err(e) if e.starts_with("BANNED:") => (None, true),
+            Err(e) if e.starts_with(ERROR_PREFIX_BANNED) => (None, true),
             Err(_) => (None, false),
         };
         (serde_json::to_value(&usage).unwrap_or(serde_json::Value::Null), banned)
@@ -91,7 +113,7 @@ pub async fn sync_account(state: State<'_, AppState>, id: String) -> Result<Acco
         let usage_call = get_usage_limits_desktop(&new_access_token).await;
         let (usage, banned) = match &usage_call {
             Ok(u) => (Some(u.clone()), false),
-            Err(e) if e.starts_with("BANNED:") => (None, true),
+            Err(e) if e.starts_with(ERROR_PREFIX_BANNED) => (None, true),
             Err(_) => (None, false),
         };
         (serde_json::to_value(&usage).unwrap_or(serde_json::Value::Null), banned)
@@ -101,7 +123,8 @@ pub async fn sync_account(state: State<'_, AppState>, id: String) -> Result<Acco
     let expires_at_str = expires_at.format("%Y/%m/%d %H:%M:%S").to_string();
 
     // 更新账号
-    let mut store = state.store.lock().unwrap();
+    let mut store = state.store.lock()
+        .map_err(|e| format!("Failed to acquire lock: {}", e))?;
     if let Some(a) = store.accounts.iter_mut().find(|a| a.id == id) {
         a.access_token = Some(new_access_token);
         if let Some(rt) = new_refresh_token {
@@ -118,8 +141,8 @@ pub async fn sync_account(state: State<'_, AppState>, id: String) -> Result<Acco
         }
         a.expires_at = Some(expires_at_str);
         a.usage_data = Some(usage_data);
-        a.status = if is_banned { "已封禁".to_string() } else { "正常".to_string() };
-        
+        a.status = if is_banned { ACCOUNT_STATUS_BANNED.to_string() } else { ACCOUNT_STATUS_NORMAL.to_string() };
+
         let result = a.clone();
         store.save_to_file();
         return Ok(result);
@@ -132,7 +155,8 @@ pub async fn sync_account(state: State<'_, AppState>, id: String) -> Result<Acco
 #[tauri::command]
 pub async fn refresh_account_token(state: State<'_, AppState>, id: String) -> Result<Account, String> {
     let account = {
-        let store = state.store.lock().unwrap();
+        let store = state.store.lock()
+            .map_err(|e| format!("Failed to acquire lock: {}", e))?;
         store.accounts.iter().find(|a| a.id == id).cloned()
     }.ok_or("Account not found")?;
 
@@ -141,15 +165,15 @@ pub async fn refresh_account_token(state: State<'_, AppState>, id: String) -> Re
     
     println!("[refresh_token] Refreshing {} token only", provider_str);
     
-    let (new_access_token, new_refresh_token, expires_in) = 
-        if provider_str == "BuilderId" {
+    let (new_access_token, new_refresh_token, expires_in) =
+        if provider_str == PROVIDER_BUILDER_ID {
             let metadata = RefreshMetadata {
                 client_id: account.client_id.clone(),
                 client_secret: account.client_secret.clone(),
                 region: account.region.clone(),
                 ..Default::default()
             };
-            let idc_provider = IdcProvider::new("BuilderId", metadata.region.as_deref().unwrap_or("us-east-1"), None);
+            let idc_provider = IdcProvider::new(PROVIDER_BUILDER_ID, metadata.region.as_deref().unwrap_or(DEFAULT_AWS_REGION), None);
             let auth_result = idc_provider.refresh_token(refresh_token_str, metadata).await?;
             (auth_result.access_token, Some(auth_result.refresh_token), auth_result.expires_in)
         } else {
@@ -165,16 +189,18 @@ pub async fn refresh_account_token(state: State<'_, AppState>, id: String) -> Re
     let expires_at = chrono::Local::now() + chrono::Duration::seconds(expires_in);
     let expires_at_str = expires_at.format("%Y/%m/%d %H:%M:%S").to_string();
 
-    let mut store = state.store.lock().unwrap();
+    let mut store = state.store.lock()
+        .map_err(|e| format!("Failed to acquire lock: {}", e))?;
     if let Some(a) = store.accounts.iter_mut().find(|a| a.id == id) {
         a.access_token = Some(new_access_token);
         if let Some(rt) = new_refresh_token {
             a.refresh_token = Some(rt);
         }
         a.expires_at = Some(expires_at_str);
-        
+
         let result = a.clone();
         store.save_to_file();
+        #[cfg(debug_assertions)]
         println!("[refresh_token] {} token refreshed", provider_str);
         return Ok(result);
     }
@@ -185,28 +211,22 @@ pub async fn refresh_account_token(state: State<'_, AppState>, id: String) -> Re
 #[tauri::command]
 pub async fn verify_account(
     state: State<'_, AppState>,
-    _access_token: String,
-    refresh_token: String,
-    _csrf_token: Option<String>,
-    provider: String,
-    // IdC 账号需要的额外参数
-    client_id: Option<String>,
-    client_secret: Option<String>,
-    region: Option<String>,
+    request: VerifyAccountRequest,
 ) -> Result<VerifyAccountResponse, String> {
     // 判断是否是 IdC 账号
-    let is_idc = provider == "BuilderId" || provider == "Enterprise";
-    
+    let is_idc = request.provider == PROVIDER_BUILDER_ID || request.provider == PROVIDER_ENTERPRISE;
+
     let (new_access_token, new_refresh_token, quota, used, subscription_type) = if is_idc {
         // IdC 账号使用 AWS OIDC 刷新
         // 优先使用传入的参数，否则从数据库查找
-        let (cid, csec, reg) = if client_id.is_some() && client_secret.is_some() {
-            (client_id, client_secret, region)
+        let (cid, csec, reg) = if request.client_id.is_some() && request.client_secret.is_some() {
+            (request.client_id, request.client_secret, request.region)
         } else {
             // 从数据库查找
-            let store = state.store.lock().unwrap();
+            let store = state.store.lock()
+                .map_err(|e| format!("Failed to acquire lock: {}", e))?;
             store.accounts.iter().find(|a| {
-                a.refresh_token.as_ref() == Some(&refresh_token)
+                a.refresh_token.as_ref() == Some(&request.refresh_token)
             }).map(|a| (
                 a.client_id.clone(),
                 a.client_secret.clone(),
@@ -223,11 +243,11 @@ pub async fn verify_account(
             region: reg.clone(),
             ..Default::default()
         };
-        
-        let region_str = reg.as_deref().unwrap_or("us-east-1");
-        let idc_provider = IdcProvider::new(&provider, region_str, None);
-        let auth_result = idc_provider.refresh_token(&refresh_token, metadata).await?;
-        
+
+        let region_str = reg.as_deref().unwrap_or(DEFAULT_AWS_REGION);
+        let idc_provider = IdcProvider::new(&request.provider, region_str, None);
+        let auth_result = idc_provider.refresh_token(&request.refresh_token, metadata).await?;
+
         // 使用 CodeWhisperer API 获取 usage
         let machine_id = get_machine_id();
         let cw_client = CodeWhispererClient::new(&machine_id);
@@ -241,7 +261,7 @@ pub async fn verify_account(
         (auth_result.access_token, auth_result.refresh_token, q, u, usage.subscription_info.and_then(|s| s.subscription_type))
     } else {
         // Social 账号使用 Desktop API 刷新
-        let refresh_result = refresh_token_desktop(&refresh_token).await?;
+        let refresh_result = refresh_token_desktop(&request.refresh_token).await?;
         let usage = get_usage_limits_desktop(&refresh_result.access_token).await?;
         
         let (q, u) = usage.usage_breakdown_list.as_ref()
@@ -254,9 +274,10 @@ pub async fn verify_account(
     
     // 更新数据库中的 token
     {
-        let mut store = state.store.lock().unwrap();
+        let mut store = state.store.lock()
+            .map_err(|e| format!("Failed to acquire lock: {}", e))?;
         if let Some(account) = store.accounts.iter_mut().find(|a| {
-            a.refresh_token.as_ref() == Some(&refresh_token)
+            a.refresh_token.as_ref() == Some(&request.refresh_token)
         }) {
             account.access_token = Some(new_access_token.clone());
             account.refresh_token = Some(new_refresh_token.clone());
@@ -279,8 +300,12 @@ pub async fn add_account_by_social(
     refresh_token: String,
     provider: Option<String>,
 ) -> Result<Account, String> {
-    println!("Adding account by refresh (desktop API)");
-    
+    // 验证 refresh_token
+    validate_token(&refresh_token, "RefreshToken")?;
+
+    #[cfg(debug_assertions)]
+    println!("[add_account_by_social] Adding account by refresh (desktop API)");
+
     let refresh_result = refresh_token_desktop(&refresh_token).await?;
     let access_token = refresh_result.access_token;
     let new_refresh_token = refresh_result.refresh_token;
@@ -288,7 +313,7 @@ pub async fn add_account_by_social(
     let usage_call = get_usage_limits_desktop(&access_token).await;
     let (usage_result, ban_reason) = match &usage_call {
         Ok(usage) => (Some(usage.clone()), None),
-        Err(e) if e.starts_with("BANNED:") => (None, Some(e.strip_prefix("BANNED:").unwrap_or("UNKNOWN").to_string())),
+        Err(e) if e.starts_with(ERROR_PREFIX_BANNED) => (None, Some(e.strip_prefix(ERROR_PREFIX_BANNED).unwrap_or("UNKNOWN").to_string())),
         Err(_) => (None, None),
     };
     let usage_data = serde_json::to_value(&usage_result).unwrap_or(serde_json::Value::Null);
@@ -298,25 +323,33 @@ pub async fn add_account_by_social(
         .and_then(|u| u.user_info.as_ref())
         .and_then(|u| u.email.clone())
         .unwrap_or_else(|| "unknown@kiro.dev".to_string());
+
+    // 验证邮箱格式
+    validate_email(&email).ok(); // 宽松验证，不阻止添加
+
     let user_id = usage_result.as_ref()
         .and_then(|u| u.user_info.as_ref())
         .and_then(|u| u.user_id.clone());
     
     let idp = provider.unwrap_or_else(|| {
-        if email.contains("gmail") { "Google".to_string() }
-        else if email.contains("github") { "Github".to_string() }
-        else { "Google".to_string() }
+        if email.contains("gmail") { PROVIDER_GOOGLE.to_string() }
+        else if email.contains("github") { PROVIDER_GITHUB.to_string() }
+        else { PROVIDER_GOOGLE.to_string() }
     });
-    
-    let mut store = state.store.lock().unwrap();
-    
+
+    // 验证 provider
+    validate_provider(&idp)?;
+
+    let mut store = state.store.lock()
+        .map_err(|e| format!("Failed to acquire lock: {}", e))?;
+
     // 按 email + provider 去重
     let account = if let Some(existing) = store.accounts.iter_mut().find(|a| a.email == email && a.provider.as_deref() == Some(&idp)) {
         existing.access_token = Some(access_token.clone());
         existing.refresh_token = Some(new_refresh_token);
         existing.user_id = user_id;
         existing.usage_data = Some(usage_data);
-        existing.status = if is_banned { "已封禁".to_string() } else { "正常".to_string() };
+        existing.status = if is_banned { ACCOUNT_STATUS_BANNED.to_string() } else { ACCOUNT_STATUS_NORMAL.to_string() };
         existing.clone()
     } else {
         let mut account = Account::new(email.clone(), format!("Kiro {} 账号", idp));
@@ -325,14 +358,14 @@ pub async fn add_account_by_social(
         account.provider = Some(idp.clone());
         account.user_id = user_id;
         account.usage_data = Some(usage_data);
-        account.status = if is_banned { "已封禁".to_string() } else { "正常".to_string() };
+        account.status = if is_banned { ACCOUNT_STATUS_BANNED.to_string() } else { ACCOUNT_STATUS_NORMAL.to_string() };
         store.accounts.insert(0, account.clone());
         account
     };
     
     store.save_to_file();
     drop(store);
-    
+
     let user = User {
         id: uuid::Uuid::new_v4().to_string(),
         email: email.clone(),
@@ -340,31 +373,38 @@ pub async fn add_account_by_social(
         avatar: None,
         provider: idp,
     };
-    *state.auth.user.lock().unwrap() = Some(user);
-    *state.auth.access_token.lock().unwrap() = Some(access_token);
-    
+    if let Ok(mut user_lock) = state.auth.user.lock() {
+        *user_lock = Some(user);
+    }
+    if let Ok(mut token_lock) = state.auth.access_token.lock() {
+        *token_lock = Some(access_token);
+    }
+
     Ok(account)
 }
 
 #[tauri::command]
 pub fn import_accounts(state: State<AppState>, json: String) -> Result<usize, String> {
-    state.store.lock().unwrap().import_from_json(&json)
+    let mut store = state.store.lock()
+        .map_err(|e| format!("Failed to acquire lock: {}", e))?;
+    store.import_from_json(&json)
 }
 
 #[tauri::command]
-pub fn export_accounts(state: State<AppState>, ids: Option<Vec<String>>) -> String {
-    let store = state.store.lock().unwrap();
+pub fn export_accounts(state: State<AppState>, ids: Option<Vec<String>>) -> Result<String, String> {
+    let store = state.store.lock()
+        .map_err(|e| format!("Failed to acquire lock: {}", e))?;
     match ids {
         Some(id_list) if !id_list.is_empty() => {
             // 导出选中的账号
             let selected: Vec<&Account> = store.accounts.iter()
                 .filter(|a| id_list.contains(&a.id))
                 .collect();
-            serde_json::to_string_pretty(&selected).unwrap_or_else(|_| "[]".to_string())
+            Ok(serde_json::to_string_pretty(&selected).unwrap_or_else(|_| "[]".to_string()))
         }
         _ => {
             // 导出全部
-            store.export_to_json()
+            Ok(store.export_to_json())
         }
     }
 }
@@ -417,7 +457,16 @@ pub async fn add_account_by_idc(
     client_secret: String,
     region: Option<String>,
 ) -> Result<Account, String> {
-    let region = region.unwrap_or_else(|| "us-east-1".to_string());
+    // 验证输入
+    validate_token(&refresh_token, "RefreshToken")?;
+    if client_id.is_empty() {
+        return Err("client_id 不能为空".to_string());
+    }
+    if client_secret.is_empty() {
+        return Err("client_secret 不能为空".to_string());
+    }
+
+    let region = region.unwrap_or_else(|| DEFAULT_AWS_REGION.to_string());
     let metadata = RefreshMetadata {
         client_id: Some(client_id.clone()),
         client_secret: Some(client_secret.clone()),
@@ -433,7 +482,7 @@ pub async fn add_account_by_idc(
     let usage_call = cw_client.get_usage_limits(&auth_result.access_token).await;
     let (usage, is_banned) = match &usage_call {
         Ok(u) => (Some(u.clone()), false),
-        Err(e) if e.starts_with("BANNED:") => (None, true),
+        Err(e) if e.starts_with(ERROR_PREFIX_BANNED) => (None, true),
         Err(_) => (None, false),
     };
     let usage_data = serde_json::to_value(&usage).unwrap_or(serde_json::Value::Null);
@@ -454,10 +503,11 @@ pub async fn add_account_by_idc(
     
     let expires_at = chrono::Local::now() + chrono::Duration::seconds(auth_result.expires_in);
     
-    let mut store = state.store.lock().unwrap();
-    
+    let mut store = state.store.lock()
+        .map_err(|e| format!("Failed to acquire lock: {}", e))?;
+
     // 按 email + provider 去重
-    let account = if let Some(existing) = store.accounts.iter_mut().find(|a| a.email == email && a.provider.as_deref() == Some("BuilderId")) {
+    let account = if let Some(existing) = store.accounts.iter_mut().find(|a| a.email == email && a.provider.as_deref() == Some(PROVIDER_BUILDER_ID)) {
         existing.access_token = Some(auth_result.access_token);
         existing.refresh_token = Some(auth_result.refresh_token);
         existing.user_id = user_id;
@@ -469,13 +519,13 @@ pub async fn add_account_by_idc(
         existing.id_token = auth_result.id_token;
         existing.sso_session_id = auth_result.sso_session_id;
         existing.usage_data = Some(usage_data);
-        existing.status = if is_banned { "已封禁".to_string() } else { "正常".to_string() };
+        existing.status = if is_banned { ACCOUNT_STATUS_BANNED.to_string() } else { ACCOUNT_STATUS_NORMAL.to_string() };
         existing.clone()
     } else {
         let mut account = Account::new(email.clone(), "Kiro BuilderId 账号".to_string());
         account.access_token = Some(auth_result.access_token);
         account.refresh_token = Some(auth_result.refresh_token);
-        account.provider = Some("BuilderId".to_string());
+        account.provider = Some(PROVIDER_BUILDER_ID.to_string());
         account.user_id = user_id;
         account.expires_at = Some(expires_at.format("%Y/%m/%d %H:%M:%S").to_string());
         account.client_id = Some(client_id);
@@ -485,7 +535,7 @@ pub async fn add_account_by_idc(
         account.id_token = auth_result.id_token;
         account.sso_session_id = auth_result.sso_session_id;
         account.usage_data = Some(usage_data);
-        account.status = if is_banned { "已封禁".to_string() } else { "正常".to_string() };
+        account.status = if is_banned { ACCOUNT_STATUS_BANNED.to_string() } else { ACCOUNT_STATUS_NORMAL.to_string() };
         store.accounts.insert(0, account.clone());
         account
     };
@@ -507,8 +557,9 @@ pub fn update_account(
     client_id: Option<String>,
     client_secret: Option<String>,
 ) -> Result<Account, String> {
-    let mut store = state.store.lock().unwrap();
-    
+    let mut store = state.store.lock()
+        .map_err(|e| format!("Failed to acquire lock: {}", e))?;
+
     // 先找到索引，避免借用冲突
     let idx = store.accounts.iter().position(|a| a.id == id);
     

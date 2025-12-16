@@ -152,19 +152,10 @@ pub async fn refresh_token_desktop(refresh_token: &str) -> Result<DesktopRefresh
             Ok(response) => {
                 let status = response.status();
                 let text = response.text().await.unwrap_or_default();
-                
-                println!("\n[Desktop] RefreshToken Response:");
-                println!("Status: {}", status);
-                // 格式化打印 JSON
-                match serde_json::from_str::<serde_json::Value>(&text) {
-                    Ok(json) => {
-                        match serde_json::to_string_pretty(&json) {
-                            Ok(pretty) => println!("{}", pretty),
-                            Err(_) => println!("{}", text),
-                        }
-                    }
-                    Err(_) => println!("{}", text),
-                }
+
+                // 仅打印状态码，不打印敏感的响应内容
+                #[cfg(debug_assertions)]
+                println!("[Desktop] RefreshToken Status: {}", status);
                 
                 if !status.is_success() {
                     if status.as_u16() == 401 {
@@ -220,20 +211,10 @@ pub async fn get_usage_limits_desktop(access_token: &str) -> Result<DesktopUsage
             Ok(response) => {
                 let status = response.status();
                 let text = response.text().await.unwrap_or_default();
-                
-                println!("\n[Social] GET USAGE LIMITS RESPONSE");
-                println!("Status: {}", status);
-                // 格式化打印 JSON
-                match serde_json::from_str::<serde_json::Value>(&text) {
-                    Ok(json) => {
-                        match serde_json::to_string_pretty(&json) {
-                            Ok(pretty) => println!("{}", pretty),
-                            Err(_) => println!("{}", text),
-                        }
-                    }
-                    Err(_) => println!("{}", text),
-                }
-                println!();
+
+                // 仅打印状态码，不打印可能包含敏感信息的响应内容
+                #[cfg(debug_assertions)]
+                println!("[Social] GetUsageLimits Status: {}", status);
                 
                 if !status.is_success() {
                     // 解析错误响应，提取 reason 字段

@@ -177,12 +177,9 @@ pub async fn web_oauth_refresh(
     let auth_result = web_provider.refresh_token_impl(access_token, csrf_token, refresh_token).await?;
 
     let new_csrf = auth_result.csrf_token.clone();
-    
+
     let portal_client = crate::providers::web_oauth::KiroWebPortalClient::new();
-    let idp = match provider.as_str() {
-        "Github" => "Github",
-        other => other,
-    };
+    let idp = provider.as_str();
     let usage = portal_client.get_user_usage_and_limits(
         &auth_result.access_token,
         new_csrf.as_deref().unwrap_or(""),

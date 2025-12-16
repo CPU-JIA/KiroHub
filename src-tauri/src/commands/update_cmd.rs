@@ -154,10 +154,10 @@ fn compare_versions(current: &str, latest: &str) -> bool {
     for i in 0..std::cmp::max(current_parts.len(), latest_parts.len()) {
         let c = current_parts.get(i).copied().unwrap_or(0);
         let l = latest_parts.get(i).copied().unwrap_or(0);
-        if l > c {
-            return true;
-        } else if l < c {
-            return false;
+        match l.cmp(&c) {
+            std::cmp::Ordering::Greater => return true,
+            std::cmp::Ordering::Less => return false,
+            std::cmp::Ordering::Equal => continue,
         }
     }
     false

@@ -326,7 +326,7 @@ fn generate_machine_id() -> String {
     use sha2::{Sha256, Digest};
     let random_bytes: [u8; 32] = rand::random();
     let mut hasher = Sha256::new();
-    hasher.update(&random_bytes);
+    hasher.update(random_bytes);
     hasher.update(chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0).to_le_bytes());
     hex::encode(hasher.finalize())
 }

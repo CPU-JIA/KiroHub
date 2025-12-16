@@ -8,6 +8,19 @@ use crate::auth_social;
 use crate::codewhisperer_client::CodeWhispererClient;
 use crate::providers::{AuthMethod, AuthProvider, get_provider_config, create_social_provider, create_idc_provider};
 use crate::kiro::get_machine_id;
+use serde::Deserialize;
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct AddKiroAccountRequest {
+    pub email: String,
+    #[serde(rename = "accessToken")]
+    pub access_token: String,
+    #[serde(rename = "refreshToken")]
+    pub refresh_token: String,
+    #[serde(rename = "csrfToken")]
+    pub csrf_token: String,
+    pub idp: String,
+}
 
 #[tauri::command]
 pub fn get_current_user(state: State<AppState>) -> Option<User> {
@@ -256,70 +269,79 @@ pub async fn handle_kiro_social_callback(
 #[tauri::command]
 pub async fn add_kiro_account(
     state: State<'_, AppState>,
-    email: String,
-    access_token: String,
-    refresh_token: String,
-    csrf_token: String,
-    idp: String,
-    _quota: Option<i32>,
-    _used: Option<i32>,
+    request: AddKiroAccountRequest,
 ) -> Result<Account, String> {
-    println!("Adding Kiro account: email={}, idp={}", email, idp);
-    
-    let usage = if !access_token.is_empty() {
-        get_usage_limits_desktop(&access_token).await.ok()
+    #[cfg(debug_assertions)]
+    println!("[add_kiro_account] Adding account: email={}, idp={}", request.email, request.idp);
+
+    let usage = if !request.access_token.is_empty() {
+        get_usage_limits_desktop(&request.access_token).await.ok()
     } else {
         None
     };
     let usage_data = serde_json::to_value(&usage).unwrap_or(serde_json::Value::Null);
-    
+
     let final_email = usage.as_ref()
         .and_then(|u| u.user_info.as_ref())
         .and_then(|ui| ui.email.clone())
-        .unwrap_or(email.clone());
+        .unwrap_or(request.email.clone());
     let user_id = usage.as_ref()
         .and_then(|u| u.user_info.as_ref())
         .and_then(|ui| ui.user_id.clone());
 
-    *state.auth.access_token.lock().unwrap() = Some(access_token.clone());
-    *state.auth.refresh_token.lock().unwrap() = Some(refresh_token.clone());
-    *state.auth.csrf_token.lock().unwrap() = Some(csrf_token.clone());
-    
+    if let Ok(mut token_lock) = state.auth.access_token.lock() {
+        *token_lock = Some(request.access_token.clone());
+    }
+    if let Ok(mut token_lock) = state.auth.refresh_token.lock() {
+        *token_lock = Some(request.refresh_token.clone());
+    }
+    if let Ok(mut token_lock) = state.auth.csrf_token.lock() {
+        *token_lock = Some(request.csrf_token.clone());
+    }
+
     let user = User {
         id: uuid::Uuid::new_v4().to_string(),
         email: final_email.clone(),
         name: final_email.split('@').next().unwrap_or("User").to_string(),
         avatar: None,
-        provider: idp.clone(),
+        provider: request.idp.clone(),
     };
-    *state.auth.user.lock().unwrap() = Some(user);
-    *state.pending_login.lock().unwrap() = None;
-    
-    let mut store = state.store.lock().unwrap();
-    
+    if let Ok(mut user_lock) = state.auth.user.lock() {
+        *user_lock = Some(user);
+    }
+    if let Ok(mut pending_lock) = state.pending_login.lock() {
+        *pending_lock = None;
+    }
+
+    let mut store = state.store.lock()
+        .map_err(|e| format!("Failed to acquire lock: {}", e))?;
+
     let account = if let Some(existing) = store.accounts.iter_mut().find(|a| a.email == final_email) {
-        existing.access_token = Some(access_token);
-        existing.refresh_token = Some(refresh_token);
-        existing.provider = Some(idp);
+        existing.access_token = Some(request.access_token);
+        existing.refresh_token = Some(request.refresh_token);
+        existing.provider = Some(request.idp);
         existing.user_id = user_id;
-        existing.csrf_token = Some(csrf_token);
+        existing.csrf_token = Some(request.csrf_token);
         existing.usage_data = Some(usage_data);
         existing.status = "正常".to_string();
         existing.clone()
     } else {
-        let mut account = Account::new(final_email.clone(), format!("Kiro {} 账号", idp));
-        account.access_token = Some(access_token);
-        account.refresh_token = Some(refresh_token);
-        account.provider = Some(idp);
+        let mut account = Account::new(final_email.clone(), format!("Kiro {} 账号", request.idp));
+        account.access_token = Some(request.access_token);
+        account.refresh_token = Some(request.refresh_token);
+        account.provider = Some(request.idp);
         account.user_id = user_id;
-        account.csrf_token = Some(csrf_token);
+        account.csrf_token = Some(request.csrf_token);
         account.usage_data = Some(usage_data);
         store.accounts.insert(0, account.clone());
         account
     };
-    
+
     store.save_to_file();
-    
+
+    #[cfg(debug_assertions)]
+    println!("[add_kiro_account] Account added successfully");
+
     Ok(account)
 }
 

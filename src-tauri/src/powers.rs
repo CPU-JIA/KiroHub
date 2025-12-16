@@ -4,7 +4,7 @@ use crate::mcp::McpConfig;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -279,7 +279,7 @@ impl PowersRegistry {
 }
 
 /// 复制目录内容
-fn copy_dir_contents(src: &PathBuf, dst: &PathBuf) -> Result<(), String> {
+fn copy_dir_contents(src: &Path, dst: &Path) -> Result<(), String> {
     for entry in fs::read_dir(src).map_err(|e| format!("读取目录失败: {}", e))? {
         let entry = entry.map_err(|e| format!("读取条目失败: {}", e))?;
         let path = entry.path();

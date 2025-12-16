@@ -4,6 +4,7 @@ import { useTheme } from '../../contexts/ThemeContext'
 import { useDialog } from '../../contexts/DialogContext'
 import { useI18n } from '../../i18n'
 import { useAccounts } from './hooks/useAccounts'
+import { DEFAULTS, DEFAULT_AWS_REGION } from '../../utils/constants'
 import AccountHeader from './AccountHeader'
 import AccountTable from './AccountTable'
 import AccountPagination from './AccountPagination'
@@ -162,11 +163,11 @@ function AccountManager() {
       
       if (isIdC) {
         params.clientIdHash = account.clientIdHash || null
-        params.region = account.region || 'us-east-1'
+        params.region = account.region || DEFAULT_AWS_REGION
         params.clientId = account.clientId || null
         params.clientSecret = account.clientSecret || null
       } else {
-        params.profileArn = account.profileArn || 'arn:aws:codewhisperer:us-east-1:699475941385:profile/EHGA3GRVQMUK'
+        params.profileArn = account.profileArn || DEFAULTS.PROFILE_ARN
       }
       
       await invoke('switch_kiro_account', { params })

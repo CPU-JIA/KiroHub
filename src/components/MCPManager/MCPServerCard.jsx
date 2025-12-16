@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { Server, Edit2, Trash2, Terminal } from 'lucide-react'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useI18n } from '../../i18n'
@@ -95,4 +96,4 @@ function MCPServerCard({ name, config, onToggle, onEdit, onDelete }) {
   )
 }
 
-export default MCPServerCard
+export default memo(MCPServerCard)

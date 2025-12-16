@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { RefreshCw, Edit2, Trash2, Copy, Check, Clock, Repeat } from 'lucide-react'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useI18n } from '../../i18n'
@@ -152,4 +153,4 @@ function AccountRow({
   )
 }
 
-export default AccountRow
+export default memo(AccountRow)

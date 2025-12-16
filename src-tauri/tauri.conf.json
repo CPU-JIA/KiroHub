@@ -31,7 +31,7 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://prod.us-east-1.auth.desktop.kiro.dev https://codewhisperer.us-east-1.amazonaws.com https://app.kiro.dev https://github.com; font-src 'self' data:; media-src 'self'"
     }
   },
   "plugins": {
