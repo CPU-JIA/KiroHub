@@ -7,6 +7,7 @@ mod browser;
 mod codewhisperer_client;
 mod commands;
 mod constants;
+mod crypto;
 mod deep_link_handler;
 
 mod kiro;

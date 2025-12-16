@@ -4,6 +4,84 @@
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
+use hmac::{Hmac, Mac};
+use sha2::Sha256;
+use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD as BASE64};
+
+/// State 有效期：5 分钟
+const STATE_VALIDITY_SECONDS: i64 = 300;
+
+/// HMAC 密钥（从机器ID派生）
+fn get_hmac_key() -> Vec<u8> {
+    let machine_id = crate::kiro::get_machine_id();
+    // 直接用 machine_id 的 hash 作为 HMAC 密钥
+    use sha2::Digest;
+    let mut hasher = Sha256::new();
+    hasher.update(machine_id.as_bytes());
+    hasher.update(b"kirohub-state-hmac-key");
+    hasher.finalize().to_vec()
+}
+
+/// 生成带 HMAC 签名的 state
+#[allow(dead_code)]
+pub fn generate_secure_state() -> String {
+    let timestamp = chrono::Utc::now().timestamp();
+    let nonce = uuid::Uuid::new_v4().to_string();
+    let payload = format!("{}:{}", timestamp, nonce);
+
+    // 计算 HMAC
+    let key = get_hmac_key();
+    let mut mac = Hmac::<Sha256>::new_from_slice(&key).expect("HMAC key init failed");
+    mac.update(payload.as_bytes());
+    let hmac_result = mac.finalize();
+    let hmac_bytes = hmac_result.into_bytes();
+
+    // 格式: timestamp:nonce:hmac
+    let state = format!("{}:{}", payload, BASE64.encode(hmac_bytes));
+    state
+}
+
+/// 验证 state 的 HMAC 签名和时间戳
+fn validate_state_signature(state: &str) -> Result<(), String> {
+    // 解析格式: timestamp:nonce:hmac
+    let parts: Vec<&str> = state.rsplitn(2, ':').collect();
+    if parts.len() != 2 {
+        return Err("Invalid state format".to_string());
+    }
+
+    let hmac_encoded = parts[0];
+    let payload = parts[1];
+
+    // 解析 payload
+    let payload_parts: Vec<&str> = payload.split(':').collect();
+    if payload_parts.len() != 2 {
+        return Err("Invalid state payload format".to_string());
+    }
+
+    let timestamp_str = payload_parts[0];
+    let timestamp = timestamp_str.parse::<i64>()
+        .map_err(|_| "Invalid timestamp".to_string())?;
+
+    // 检查时间戳未过期
+    let now = chrono::Utc::now().timestamp();
+    if (now - timestamp).abs() > STATE_VALIDITY_SECONDS {
+        return Err(format!("State expired (age: {} seconds)", now - timestamp));
+    }
+
+    // 验证 HMAC
+    let hmac_bytes = BASE64.decode(hmac_encoded)
+        .map_err(|_| "Invalid HMAC encoding".to_string())?;
+
+    let key = get_hmac_key();
+    let mut mac = Hmac::<Sha256>::new_from_slice(&key)
+        .map_err(|_| "HMAC key init failed".to_string())?;
+    mac.update(payload.as_bytes());
+
+    mac.verify_slice(&hmac_bytes)
+        .map_err(|_| "HMAC verification failed - possible tampering".to_string())?;
+
+    Ok(())
+}
 
 /// OAuth 回调结果
 #[derive(Debug, Clone)]
@@ -47,15 +125,23 @@ static PENDING_SENDER: std::sync::OnceLock<Mutex<Option<PendingSender>>> = std::
 /// 注册一个新的回调等待器，返回接收端
 pub fn register_waiter(state: &str) -> DeepLinkCallbackWaiter {
     let (tx, rx) = mpsc::channel();
-    
+
     // 存储发送端
     let storage = PENDING_SENDER.get_or_init(|| Mutex::new(None));
     *storage.lock().unwrap() = Some((state.to_string(), tx));
-    
+
     DeepLinkCallbackWaiter {
         result_rx: Arc::new(Mutex::new(Some(rx))),
         timeout: Duration::from_secs(300),
     }
+}
+
+/// 注册带安全验证的回调等待器（推荐使用）
+#[allow(dead_code)]
+pub fn register_secure_waiter() -> (String, DeepLinkCallbackWaiter) {
+    let state = generate_secure_state();
+    let waiter = register_waiter(&state);
+    (state, waiter)
 }
 
 /// 处理 deep link URL（由 main.rs 调用）
@@ -134,7 +220,16 @@ pub fn handle_deep_link(url: &str) -> bool {
         return true;
     }
 
-    println!("[DeepLink] Callback success, code: {}...", &code[..20.min(code.len())]);
+    // 验证 state 签名（如果是新格式）
+    if let Err(e) = validate_state_signature(&state) {
+        println!("[DeepLink] State validation failed: {}", e);
+        let _ = tx.send(Err(format!("State validation failed: {}", e)));
+        return true;
+    }
+
+    #[cfg(debug_assertions)]
+    println!("[DeepLink] Callback success, code length: {}", code.len());
+
     let _ = tx.send(Ok(OAuthCallbackResult { code, state }));
     true
 }
