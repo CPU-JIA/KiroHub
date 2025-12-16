@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
 import { invoke } from '@tauri-apps/api/core'
+import { useI18n } from '../i18n'
 
 export default function AuthCallback() {
   const [status, setStatus] = useState('loading')
-  const [message, setMessage] = useState('正在处理登录回调...')
+  const [message, setMessage] = useState('')
+  const { t } = useI18n()
 
   useEffect(() => {
+    setMessage(t('common.processing'))
     const handleCallback = async () => {
       try {
         // 从 URL 获取 code 和 state
@@ -15,18 +18,18 @@ export default function AuthCallback() {
 
         if (!code || !state) {
           setStatus('error')
-          setMessage('缺少必要的回调参数')
+          setMessage(t('common.missingParams'))
           return
         }
 
         setStatus('processing')
-        setMessage('正在交换访问令牌...')
+        setMessage(t('common.processingToken'))
 
         // 调用 Rust 处理回调
         await invoke('handle_kiro_social_callback', { code, state })
 
         setStatus('success')
-        setMessage('登录成功！账号已添加到应用中。')
+        setMessage(t('common.loginSuccessMsg'))
 
         // 3秒后关闭窗口
         setTimeout(() => {
@@ -36,12 +39,12 @@ export default function AuthCallback() {
       } catch (error) {
         console.error('Callback error:', error)
         setStatus('error')
-        setMessage(error.message || '登录失败，请重试')
+        setMessage(error.message || t('common.loginFailedRetry'))
       }
     }
 
     handleCallback()
-  }, [])
+  }, [t])
 
   const getStatusIcon = () => {
     switch (status) {
@@ -88,9 +91,9 @@ export default function AuthCallback() {
         {getStatusIcon()}
         
         <h1 className={`text-2xl font-bold text-center mb-4 ${getStatusColor()}`}>
-          {status === 'success' && '登录成功'}
-          {status === 'error' && '登录失败'}
-          {(status === 'loading' || status === 'processing') && '处理中...'}
+          {status === 'success' && t('common.loginSuccess')}
+          {status === 'error' && t('common.loginFailed')}
+          {(status === 'loading' || status === 'processing') && t('common.processing')}
         </h1>
         
         <p className="text-gray-600 text-center mb-6 leading-relaxed">
@@ -100,13 +103,13 @@ export default function AuthCallback() {
         {status === 'success' && (
           <div className="text-center">
             <p className="text-sm text-gray-500 mb-4">
-              此窗口将自动关闭，或您可以手动关闭
+              {t('common.autoCloseHint')}
             </p>
             <button
               onClick={() => window.close()}
               className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
             >
-              关闭窗口
+              {t('common.closeWindow')}
             </button>
           </div>
         )}
@@ -117,7 +120,7 @@ export default function AuthCallback() {
               onClick={() => window.close()}
               className="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
             >
-              关闭窗口
+              {t('common.closeWindow')}
             </button>
           </div>
         )}
